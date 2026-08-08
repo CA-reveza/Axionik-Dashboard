@@ -5,8 +5,14 @@ import { redeemCoupon } from "./redemptions.js";
 
 const router = Router();
 
-function userIdFromPhone(phone) {
-  return `cust_${String(phone).replace(/[+\s]/g, "")}`;
+function normalizePhone(phone) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (digits.length > 10) return digits.slice(-10);
+  return digits;
+}
+
+export function userIdFromPhone(phone) {
+  return `cust_${normalizePhone(phone)}`;
 }
 
 // Wi-Fi captive portal check-in — creates/updates a customer profile,

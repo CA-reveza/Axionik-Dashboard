@@ -2,6 +2,7 @@ import { Router } from "express";
 import { getCustomer, saveCustomer, saveOrder, listOrders } from "../db.js";
 import { calculateVipTier, cleanCode, shortId, nowIso } from "../lib/helpers.js";
 import { redeemCoupon } from "./redemptions.js";
+import { userIdFromPhone } from "./customers.js";
 
 const router = Router();
 
@@ -21,7 +22,7 @@ router.post("/api/order", async (req, res) => {
   const discountSaved = body.discountSaved ?? (couponCode ? total * 0.15 : 0);
   const storeLocation = body.storeLocation || "Mumbai - Malad West Flagship";
 
-  const userId = `cust_${String(phone).replace(/[+\s]/g, "")}`;
+  const userId = userIdFromPhone(phone);
   const existing = await getCustomer(userId);
   const newSpend = (existing?.total_spend || 0) + total;
   const customer = {
