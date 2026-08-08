@@ -1,4 +1,5 @@
-import "dotenv/config";
+import "./src/env.js";
+
 import express from "express";
 import cors from "cors";
 import path from "node:path";
@@ -12,6 +13,7 @@ import couponsRoute from "./src/routes/coupons.js";
 import redemptionsRoute from "./src/routes/redemptions.js";
 import ordersRoute from "./src/routes/orders.js";
 import feedbackRoute from "./src/routes/feedback.js";
+import marketplaceRoute from "./src/routes/marketplace.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -26,6 +28,7 @@ app.use(couponsRoute);
 app.use(redemptionsRoute);
 app.use(ordersRoute);
 app.use(feedbackRoute);
+app.use(marketplaceRoute);
 
 // Serve the built dashboard (npm run build:dashboard) if it exists, so a
 // single Render service can host both the API and the dashboard UI.

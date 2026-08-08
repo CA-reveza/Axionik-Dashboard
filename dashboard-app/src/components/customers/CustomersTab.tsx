@@ -17,6 +17,7 @@ import { LoyaltyBadge } from '../common/Badge';
 import { Modal } from '../common/Modal';
 import { Customer, LoyaltyTier } from '../../types';
 import { downloadReportFile } from '../../utils/exportAndPrint';
+import { MarketplaceActivityPanel } from './MarketplaceActivityPanel';
 
 interface CustomersTabProps {
   customers: Customer[];
@@ -333,6 +334,16 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                   {selectedCustomer.lastPurchaseDate}
                 </span>
               </div>
+            </div>
+
+            <div className="p-4 border border-slate-200 rounded-xl space-y-2">
+              <div className="font-bold text-slate-900 text-xs mb-1">
+                Marketplace Activity
+                <span className="font-normal text-slate-400 ml-1">
+                  (Fashion, Restaurant &amp; Movie bookings across Axionik)
+                </span>
+              </div>
+              <MarketplaceActivityPanel email={selectedCustomer.email} />
             </div>
           </div>
         </Modal>
