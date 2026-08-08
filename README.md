@@ -11,12 +11,16 @@ axionik/
 ├── server/              ← Node.js/Express + Supabase API (deploy to Render)
 ├── captive-portal-app/  ← Customer WiFi sign-in portal (React/Vite, deploy to Vercel)
 ├── dashboard-app/       ← Store manager dashboard (React/Vite, deploy to Vercel — or served by the API)
+├── mobile-app/           ← Flutter mobile app (unrelated to the JS rewrite — build/run separately)
+├── firmware/             ← ESP32 captive-portal firmware (Arduino/C++ — flash separately)
+├── docs/                 ← Supabase schema references (Shoppers Stop + Marketplace)
 ├── render.yaml           ← Render blueprint for the backend
-└── package.json           ← npm workspaces root
+└── package.json           ← npm workspaces root (server + captive-portal-app + dashboard-app only)
 ```
 
-`firmware/` (ESP32) and the Flutter mobile app from the original project are untouched
-and live outside this cleaned-up folder — copy them back in if you need them.
+`mobile-app/` and `firmware/` are standalone projects copied in as-is for convenience —
+they're not part of the npm workspace and don't affect `npm install`/`npm run build` at
+the root. See `mobile-app/README.md` and `firmware/README.md` for their own setup steps.
 
 ## 1. Local setup
 
@@ -88,6 +92,34 @@ Each app deploys as its own Vercel project (a `vercel.json` is already in each f
 | GET | `/api/orders` | List orders |
 | POST | `/api/feedback` | Submit customer feedback |
 | GET | `/api/feedbacks` | List feedback |
+| GET | `/api/marketplace/:email` | A customer's Axionik Marketplace activity (movie bookings, restaurant reservations, retail orders) |
+
+## Marketplace activity integration
+
+The dashboard's customer detail modal shows that customer's activity from
+Axionik-MarketplacePro (movies, restaurants, retail) — matched by **email**,
+since that's what MarketplacePro's booking tools key on.
+
+Set these on the server (`server/.env`, or as Render env vars) to enable it:
+
+```
+MARKETPLACE_SUPABASE_URL=...
+MARKETPLACE_SUPABASE_KEY=...
+```
+
+**Important — verify the table names.** `server/src/routes/marketplace.js` guesses
+the Supabase table names (`bookings`, `reservations`, `orders`) based on the MCP
+tool schema, since I didn't have direct access to your Marketplace project's actual
+schema. If the panel shows a "couldn't read this table" error for any section, open
+that file, check the real table names in your Marketplace Supabase project, and
+update the `SOURCES` array at the top — everything else adapts automatically.
+
+Also worth double-checking: the key you're using
+(`sb_publishable_...`) is a **publishable** key, not the legacy `service_role` JWT.
+Publishable keys are subject to Row Level Security — if MarketplacePro's tables
+don't have a public-read RLS policy, these queries will return empty rather than
+erroring. If the panel stays empty even for a customer you know has bookings, that's
+the first thing to check in Supabase (Authentication → Policies on those tables).
 
 ## What changed from the original
 
