@@ -76,6 +76,7 @@ export interface Customer {
   joinedDate: string;
   avatar: string;
   storeLocation?: string;
+  checkedInAt?: string; // ISO timestamp — drives newest-first sorting & new-arrival detection
 }
 
 export interface InventoryItem {

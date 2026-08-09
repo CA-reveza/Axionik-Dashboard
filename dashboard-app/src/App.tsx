@@ -15,7 +15,8 @@ import {
   STORE_LOCATIONS,
 } from './data/mockData';
 import { Sidebar } from './components/layout/Sidebar';
-import { Header } from './components/layout/Header';
+import { Header, AppNotification } from './components/layout/Header';
+import { NewCustomerToastContainer, CustomerToast } from './components/common/NewCustomerToast';
 import { OverviewTab } from './components/dashboard/OverviewTab';
 import { OrdersTab } from './components/orders/OrdersTab';
 import { CustomersTab } from './components/customers/CustomersTab';
@@ -38,6 +39,56 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
 
+  const [notifications, setNotifications] = useState<AppNotification[]>([
+    {
+      id: 'seed-1',
+      title: 'Low Stock Alert',
+      desc: 'Rolex Submariner Date Watch down to 1 unit in Malad vault.',
+      time: '5 mins ago',
+      unread: true,
+    },
+    {
+      id: 'seed-2',
+      title: 'Low Stock Alert',
+      desc: 'Prada Monolith Leather Boots down to 2 units in stock.',
+      time: '12 mins ago',
+      unread: true,
+    },
+    {
+      id: 'seed-3',
+      title: 'High-Value Order Received',
+      desc: 'Order #SS-ORD-98421 placed for ₹1,85,000 by Black Member.',
+      time: '35 mins ago',
+      unread: true,
+    },
+    {
+      id: 'seed-4',
+      title: 'Out of Stock Warning',
+      desc: 'Louis Vuitton Neverfull MM Damier Tote is currently Out of Stock.',
+      time: '1 hour ago',
+      unread: false,
+    },
+    {
+      id: 'seed-5',
+      title: 'Monthly Tax Audit Ready',
+      desc: 'GST Sales summary report for July 2026 is ready for download.',
+      time: '2 hours ago',
+      unread: false,
+    },
+  ]);
+  const [customerToasts, setCustomerToasts] = useState<CustomerToast[]>([]);
+  const knownCustomerIdsRef = React.useRef<Set<string> | null>(null);
+
+  const dismissToast = (id: string) => {
+    setCustomerToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+  const markAllNotificationsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+  };
+  const markOneNotificationRead = (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
+  };
+
   
   // Safe Live API Sync Hook
   // Safe Live API Sync Hook
@@ -52,6 +103,7 @@ export default function App() {
             const apiCusts: Customer[] = data.customers.map((c: any) => {
               const rawSpend = c.totalSpent ?? c.total_spend ?? c.lifetimeSpend;
               const rawPoints = c.loyaltyPoints ?? c.points;
+              const checkedInAt = c.last_visit || c.created_at || new Date().toISOString();
               return {
                 id: c.id || c.user_id || c.customer_id || `FC-${Math.floor(Math.random() * 90000)}`,
                 name: c.name || c.username || "First Citizen Member",
@@ -65,9 +117,36 @@ export default function App() {
                 preferredCategory: c.preferredCategory || "Luxury Watches & Accessories",
                 joinedDate: "2026-01-15",
                 avatar: c.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150",
-                storeLocation: c.storeLocation || "Mumbai - Malad West Flagship"
+                storeLocation: c.storeLocation || "Mumbai - Malad West Flagship",
+                checkedInAt,
               };
             });
+
+            // Detect genuinely new arrivals (skip the very first fetch — that's
+            // just populating the dashboard, not "new" check-ins) and surface
+            // a popup + notification-bell entry for each one.
+            const currentIds = new Set(apiCusts.map((c) => c.id));
+            const isFirstFetch = knownCustomerIdsRef.current === null;
+            if (!isFirstFetch) {
+              const newlyArrived = apiCusts.filter((c) => !knownCustomerIdsRef.current!.has(c.id));
+              if (newlyArrived.length) {
+                setCustomerToasts((prev) => [
+                  ...newlyArrived.map((c) => ({ id: c.id, name: c.name, storeLocation: c.storeLocation })),
+                  ...prev,
+                ]);
+                setNotifications((prev) => [
+                  ...newlyArrived.map((c) => ({
+                    id: `checkin-${c.id}-${Date.now()}`,
+                    title: 'New Customer Walked In',
+                    desc: `${c.name} just connected via the WiFi portal${c.storeLocation ? ` at ${c.storeLocation}` : ''}.`,
+                    time: 'Just now',
+                    unread: true,
+                  })),
+                  ...prev,
+                ]);
+              }
+            }
+            knownCustomerIdsRef.current = currentIds;
 
             setCustomers(prev => {
               if (!Array.isArray(prev)) return prev;
@@ -84,6 +163,13 @@ export default function App() {
                 } else {
                   merged.unshift(ac);
                 }
+              });
+              // Newest check-in always shows as customer #1, regardless of
+              // where the merge logic above placed it.
+              merged.sort((a, b) => {
+                const at = a.checkedInAt ? new Date(a.checkedInAt).getTime() : 0;
+                const bt = b.checkedInAt ? new Date(b.checkedInAt).getTime() : 0;
+                return bt - at;
               });
               return merged;
             });
@@ -376,6 +462,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] text-gray-900 font-sans selection:bg-[#2D74B2]/20 selection:text-[#2D74B2]">
+      <NewCustomerToastContainer toasts={customerToasts} onDismiss={dismissToast} />
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -393,6 +480,9 @@ export default function App() {
           onOpenDownloadModal={() => setIsDownloadModalOpen(true)}
           dateRange={dateRange}
           setDateRange={setDateRange}
+          notifications={notifications}
+          onMarkAllRead={markAllNotificationsRead}
+          onMarkOneRead={markOneNotificationRead}
         />
 
         <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto">

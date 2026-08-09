@@ -11,6 +11,14 @@ import {
 } from 'lucide-react';
 import { Button } from '../common/Button';
 
+export interface AppNotification {
+  id: string;
+  title: string;
+  desc: string;
+  time: string;
+  unread: boolean;
+}
+
 interface HeaderProps {
   title: string;
   subtitle?: string;
@@ -19,6 +27,9 @@ interface HeaderProps {
   onOpenDownloadModal: () => void;
   dateRange: string;
   setDateRange: (range: string) => void;
+  notifications: AppNotification[];
+  onMarkAllRead: () => void;
+  onMarkOneRead: (id: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -29,6 +40,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenDownloadModal,
   dateRange,
   setDateRange,
+  notifications,
+  onMarkAllRead,
+  onMarkOneRead,
 }) => {
   const [now, setNow] = useState(new Date());
   React.useEffect(() => {
@@ -50,55 +64,15 @@ export const Header: React.FC<HeaderProps> = ({
     'Custom Date Range',
   ];
 
-  const [notifications, setNotifications] = useState([
-    {
-      id: '1',
-      title: 'Low Stock Alert',
-      desc: 'Rolex Submariner Date Watch down to 1 unit in Malad vault.',
-      time: '5 mins ago',
-      unread: true,
-    },
-    {
-      id: '2',
-      title: 'Low Stock Alert',
-      desc: 'Prada Monolith Leather Boots down to 2 units in stock.',
-      time: '12 mins ago',
-      unread: true,
-    },
-    {
-      id: '3',
-      title: 'High-Value Order Received',
-      desc: 'Order #SS-ORD-98421 placed for ₹1,85,000 by Black Member.',
-      time: '35 mins ago',
-      unread: true,
-    },
-    {
-      id: '4',
-      title: 'Out of Stock Warning',
-      desc: 'Louis Vuitton Neverfull MM Damier Tote is currently Out of Stock.',
-      time: '1 hour ago',
-      unread: false,
-    },
-    {
-      id: '5',
-      title: 'Monthly Tax Audit Ready',
-      desc: 'GST Sales summary report for July 2026 is ready for download.',
-      time: '2 hours ago',
-      unread: false,
-    },
-  ]);
-
   const unreadCount = notifications.filter((n) => n.unread).length;
 
   const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    onMarkAllRead();
     setShowNotifications(false);
   };
 
   const handleMarkSingleAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
-    );
+    onMarkOneRead(id);
     setShowNotifications(false);
   };
 
